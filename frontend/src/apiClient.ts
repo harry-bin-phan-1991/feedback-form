@@ -11,6 +11,16 @@ export type FeedbackResponse = {
   id: number;
   name: string;
   message: string;
+  createdAt: string;
+};
+
+export type PageResponse<T> = {
+  items: T[];
+  page: number;
+  size: number;
+  totalElements: number;
+  totalPages: number;
+  hasNext: boolean;
 };
 
 export type ApiError = {
@@ -45,6 +55,22 @@ function getBaseUrl(): string {
   return typeof fromEnv === 'string' && fromEnv.length > 0 ? fromEnv : 'http://localhost:8080';
 }
 
+async function handleError(resp: Response): Promise<never> {
+  let body: ApiError | undefined;
+  try {
+    body = (await resp.json()) as ApiError;
+  } catch {
+  }
+
+  const message =
+    body?.message ||
+    body?.error ||
+    resp.statusText ||
+    'Request failed';
+
+  throw new HttpError(message, resp.status, body);
+}
+
 /**
  * POST /api/feedback
  * Submits feedback and returns a sanitized response that excludes sensitive fields.
@@ -64,21 +90,60 @@ async function submitFeedback(dto: FeedbackRequest): Promise<FeedbackResponse> {
     return data;
   }
 
-  let body: ApiError | undefined;
-  try {
-    body = (await resp.json()) as ApiError;
-  } catch {
+  return handleError(resp);
+}
+
+/**
+ * GET /api/feedback?page&size
+ * Returns a paginated list of feedback responses sorted by createdAt desc.
+ */
+async function getFeedbacksPage(page: number, size: number): Promise<PageResponse<FeedbackResponse>> {
+  const url = `${getBaseUrl()}/api/feedback?page=${encodeURIComponent(page)}&size=${encodeURIComponent(size)}`;
+  const resp = await fetch(url, {
+    method: 'GET',
+    headers: {
+      'Accept': 'application/json'
+    }
+  });
+
+  if (resp.ok) {
+    const raw = (await resp.json()) as unknown;
+    if (Array.isArray(raw)) {
+      const allItems = raw as FeedbackResponse[];
+      const totalElements = allItems.length;
+      const totalPages = Math.max(1, Math.ceil(totalElements / size));
+      const start = Math.max(0, page * size);
+      const end = Math.min(totalElements, start + size);
+      const items = allItems.slice(start, end);
+      const hasNext = page < totalPages - 1;
+
+      return {
+        items,
+        page,
+        size,
+        totalElements,
+        totalPages,
+        hasNext
+      };
+    }
+
+    const data = raw as PageResponse<FeedbackResponse>;
+    return data;
   }
 
-  const message =
-    body?.message ||
-    body?.error ||
-    resp.statusText ||
-    'Request failed';
+  return handleError(resp);
+}
 
-  throw new HttpError(message, resp.status, body);
+/**
+ * Convenience: fetch first page and return items only (for legacy/simple uses).
+ */
+async function getFeedbacks(): Promise<FeedbackResponse[]> {
+  const firstPage = await getFeedbacksPage(0, 10);
+  return firstPage.items;
 }
 
 export const apiClient = {
-  submitFeedback
+  submitFeedback,
+  getFeedbacks,
+  getFeedbacksPage
 };

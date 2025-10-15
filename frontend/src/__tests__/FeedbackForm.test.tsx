@@ -1,6 +1,7 @@
 import React from 'react';
 import type { Mock } from 'vitest';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import ToastProvider from '../components/ToastProvider';
 import FeedbackForm from '../components/FeedbackForm';
 
@@ -15,7 +16,12 @@ vi.mock('../apiClient', () => {
 import { apiClient } from '../apiClient';
 
 function renderWithProviders(ui: React.ReactElement) {
-  return render(<ToastProvider>{ui}</ToastProvider>);
+  const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+  return render(
+    <QueryClientProvider client={queryClient}>
+      <ToastProvider>{ui}</ToastProvider>
+    </QueryClientProvider>
+  );
 }
 
 describe('FeedbackForm', () => {

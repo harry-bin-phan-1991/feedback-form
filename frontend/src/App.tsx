@@ -1,5 +1,6 @@
 import React from 'react';
 import FeedbackForm from './components/FeedbackForm';
+import FeedbackList from './components/FeedbackList';
 
 export default function App() {
   return (
@@ -9,6 +10,7 @@ export default function App() {
         <p>Submit your feedback below. We value your thoughts.</p>
         <FeedbackForm />
       </div>
+      <FeedbackList />
     </div>
   );
 }

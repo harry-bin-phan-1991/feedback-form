@@ -6,6 +6,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { apiClient, type ApiError } from '../apiClient';
 import { useToast } from './ToastProvider';
 import { useFeedbackStore } from '../store/feedbackStore';
+import { useQueryClient } from '@tanstack/react-query';
 
 const schema = z.object({
   name: z
@@ -27,6 +28,7 @@ type FormData = z.infer<typeof schema>;
 
 export default function FeedbackForm() {
   const { showToast } = useToast();
+  const queryClient = useQueryClient();
 
   const setSubmitting = useFeedbackStore((s) => s.setSubmitting);
   const setLastResponse = useFeedbackStore((s) => s.setLastResponse);
@@ -48,6 +50,7 @@ export default function FeedbackForm() {
     try {
       const resp = await apiClient.submitFeedback(data);
       setLastResponse(resp);
+      await queryClient.invalidateQueries({ queryKey: ['feedbacks'] });
       reset();
       showToast({
         title: 'Feedback sent',

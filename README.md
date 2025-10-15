@@ -2,9 +2,9 @@
 
 # Feedback App
 
-A simple full‑stack feedback application that allows users to submit feedback and view submitted entries.  
-The app is built with **Spring Boot 3** on the backend and **React + TypeScript (Vite)** on the frontend.  
-It includes validation, error handling, structured logging, and automated tests.
+A small full‑stack app for submitting feedback and viewing submitted entries.  
+Built with **Spring Boot 3** (backend) and **React + TypeScript (Vite)** (frontend).  
+Includes validation, error handling, structured logging, and automated tests.
 
 ***
 
@@ -12,27 +12,27 @@ It includes validation, error handling, structured logging, and automated tests.
 
 ### Features
 - Submit feedback with name, email, and message  
-- Validate input and return user‑friendly errors  
-- Log requests and responses without exposing sensitive data  
-- In‑memory database (H2) for easy testing  
-- Includes frontend and backend unit tests  
-- Optional bonus branch adds feedback listing with timestamps
+- Validate input with clear, user‑friendly error messages  
+- Log requests/responses without exposing sensitive data  
+- Use H2 in‑memory DB for fast local dev  
+- Unit tests for both backend and frontend  
+- List feedback with timestamps and pagination via `GET /api/feedback`
 
 ### Tech Stack
 
 **Backend:**
-- Java 17 + Spring Boot 3
-- Spring Web, JPA/Hibernate, Validation (Jakarta)
-- H2 in‑memory database
-- Maven 3.9+
-- JUnit 5 and Mockito for testing
+- Java 17, Spring Boot 3  
+- Spring Web, JPA/Hibernate, Jakarta Validation  
+- H2 in‑memory database  
+- Maven 3.9+  
+- JUnit 5, Mockito
 
 **Frontend:**
-- React + TypeScript (Vite)
-- React Hooks, form validation
-- Axios for API calls
-- React Testing Library + Vitest for testing
-- Toast notifications for success/error messages
+- React + TypeScript (Vite)  
+- React Hooks, form validation  
+- Axios for HTTP  
+- React Testing Library + Vitest  
+- Toasts for success/error
 
 ***
 
@@ -68,44 +68,40 @@ feedback-app/
 
 ## Backend Implementation
 
-**Location:** `backend/`
+Location: `backend/`
 
 ### Key Components
-
-- **Entity:** `Feedback` – represents a feedback record with `id`, `name`, `email`, `message`, `createdAt` (optional bonus).
-- **DTOs:** `FeedbackRequest`, `FeedbackResponse`, `ErrorResponse` handle request/response payloads cleanly.
-- **Service:** `FeedbackService` and `FeedbackServiceImpl` manage business logic and persistence.
-- **Controller:** `FeedbackController` exposes REST endpoints using Spring MVC.
-- **Repository:** `FeedbackRepository` extends `JpaRepository` for data access.
-- **Exception Handling:** `GlobalExceptionHandler` captures validation and runtime errors.
-- **Logging:** `RequestResponseLoggingFilter` logs all requests/responses at INFO or ERROR levels.
-- **CORS Config:** `CorsConfig` enables development origins.
+- Entity: `Feedback` — `id`, `name`, `email`, `message`, `createdAt` (via `@CreationTimestamp`)  
+- DTOs: `FeedbackRequest`, `FeedbackResponse`, `ErrorResponse`  
+- Service: `FeedbackService`, `FeedbackServiceImpl`  
+- Controller: `FeedbackController` (Spring MVC)  
+- Repository: `FeedbackRepository` (`JpaRepository`)  
+- Exceptions: `GlobalExceptionHandler` (validation/runtime)  
+- Logging: `RequestResponseLoggingFilter` (INFO/ERROR, no sensitive data)  
+- CORS: `CorsConfig` (dev origin)
 
 ### API Summary
 
-**POST /api/feedback**
+POST `/api/feedback`
+- Request:
+```json
+{
+  "name": "John Doe",
+  "email": "john@example.com",
+  "message": "Your platform looks great!"
+}
+```
+- Response:
+```json
+{
+  "id": 1,
+  "name": "John Doe",
+  "message": "Your platform looks great!"
+}
+```
+- Notes: Email is validated but not returned or logged.
 
-- **Request:**
-  ```json
-  {
-    "name": "John Doe",
-    "email": "john@example.com",
-    "message": "Your platform looks great!"
-  }
-  ```
-
-- **Response:**
-  ```json
-  {
-    "id": 1,
-    "name": "John Doe",
-    "message": "Your platform looks great!"
-  }
-  ```
-
-Email is validated but never returned in responses or logs.
-
-**Sample error (HTTP 400):**
+Sample 400:
 ```json
 {
   "status": 400,
@@ -117,27 +113,40 @@ Email is validated but never returned in responses or logs.
 }
 ```
 
+GET `/api/feedback?page={page}&size={size}`
+- Response (paginated; newest first by `createdAt`):
+```json
+{
+  "items": [
+    { "id": 2, "name": "Alice", "message": "Hi", "createdAt": "2024-02-01T00:00:00Z" },
+    { "id": 1, "name": "Bob", "message": "Hello", "createdAt": "2024-01-01T00:00:00Z" }
+  ],
+  "page": 0,
+  "size": 10,
+  "totalElements": 2,
+  "totalPages": 1,
+  "hasNext": false
+}
+```
+The frontend client also normalizes a bare array into this shape for resilience.
+
 ***
 
 ### Database and Config
-
-- Database: `H2` (in‑memory) – JDBC URL `jdbc:h2:mem:feedbackdb`  
-- Console: [http://localhost:8080/h2-console](http://localhost:8080/h2-console)  
-  - User: `sa`, no password  
-- Hibernate DDL auto: `update`
-- Logging and allowed origins configured in `application.yml`.
+- DB: H2 (in‑memory), JDBC `jdbc:h2:mem:feedbackdb`  
+- Console: `http://localhost:8080/h2-console` (user `sa`, no password)  
+- Hibernate DDL auto: `update`  
+- Logging/CORS via `application.yml`
 
 ***
 
 ### Run Backend
-
 ```bash
 mvn -f backend/pom.xml spring-boot:run
 ```
+Runs at `http://localhost:8080`.
 
-Backend runs at [http://localhost:8080](http://localhost:8080)
-
-**Alternative (build JAR):**
+Alternative (JAR):
 ```bash
 mvn -f backend/pom.xml -DskipTests clean package
 java -jar backend/target/backend-0.0.1-SNAPSHOT.jar
@@ -146,35 +155,30 @@ java -jar backend/target/backend-0.0.1-SNAPSHOT.jar
 ***
 
 ### Backend Tests
-
-Run all backend tests:
 ```bash
 mvn -f backend/pom.xml test
 ```
-
-Tests include:
-- `FeedbackControllerTest` – verifies endpoints and validation
-- `FeedbackServiceImplTest` – checks business logic and persistence
+- `FeedbackControllerTest` — endpoints + validation  
+- `FeedbackServiceImplTest` — business logic + persistence
 
 ***
 
 ## Frontend Implementation
 
-**Location:** `frontend/`
+Location: `frontend/`
 
-The frontend provides a simple, responsive page for submitting feedback and displaying user messages.
+The UI provides a simple form for submissions and a list view with timestamps and pagination.
 
 ### Main Parts
-
-- `App.tsx` – main component rendering the form and toasts  
-- `apiClient.ts` – handles backend calls using Axios  
-- `FeedbackForm` – form handling with React Hooks and validation  
-- Tests located in `src/__tests__/` for component and API coverage  
+- `App.tsx` — form + toasts + feedback list  
+- `apiClient.ts` — Axios calls, error normalization  
+- `FeedbackForm` — hooks‑based validation + submit handling  
+- `FeedbackList` — paginated list, “Load more”, refresh, timestamps  
+- Tests under `src/__tests__/`
 
 ### Environment Variables
-
-By default, the frontend connects to `http://localhost:8080`.  
-You can override it with a `.env` file:
+Default backend: `http://localhost:8080`  
+Override via `.env`:
 ```
 VITE_API_URL=http://localhost:8080
 ```
@@ -182,17 +186,14 @@ VITE_API_URL=http://localhost:8080
 ***
 
 ### Run Frontend
-
-From `frontend/`:
-
 ```bash
+cd frontend
 npm install
 npm run dev
 ```
+Runs at `http://localhost:5173`.
 
-App starts at [http://localhost:5173](http://localhost:5173)
-
-To build for production:
+Build/preview:
 ```bash
 npm run build
 npm run preview
@@ -201,92 +202,74 @@ npm run preview
 ***
 
 ### Frontend Tests
-
 ```bash
 npm test
 ```
-
-Runs using **Vitest + React Testing Library** with Jest‑DOM matchers loaded via `setupTests.ts`.
+- Vitest + React Testing Library  
+- Jest‑DOM matchers loaded via `setupTests.ts`
 
 ***
 
 ## End‑to‑End Local Run
-
-1. Start backend (port 8080):  
-   ```bash
-   mvn -f backend/pom.xml spring-boot:run
-   ```
-2. Start frontend (port 5173):  
-   ```bash
-   cd frontend
-   npm run dev
-   ```
-3. Open [http://localhost:5173](http://localhost:5173)
-4. Submit a feedback form.  
-   - You should see a success toast and a 200 OK response.  
-   - Request and response will appear in backend logs.
+1. Start backend:
+```bash
+mvn -f backend/pom.xml spring-boot:run
+```
+2. Start frontend:
+```bash
+cd frontend
+npm run dev
+```
+3. Open `http://localhost:5173`, submit the form  
+   - Expect 200 OK + success toast  
+   - Backend logs show the request/response at INFO
 
 ***
 
 ## Logging Behavior
-
-- Every request and response logged at INFO with method, path, status, and duration.  
-- Validation logs appear at INFO, errors at ERROR.  
-- Sensitive data like email is never logged at INFO level.
+- INFO: method, path, status, duration  
+- ERROR: unexpected exceptions  
+- Email and other sensitive fields not logged at INFO
 
 ***
 
 ## CORS Configuration
-
-Allowed origin for local development: `http://localhost:5173`
-
-You can override it via environment variable:
+- Allowed origin (dev): `http://localhost:5173`  
+- Override:
 ```
 CORS_ALLOWED_ORIGINS=http://localhost:5173
 ```
-
-If frontend can’t reach backend, check:
-- CORS config values
-- Console for preflight request logs
+If requests fail, check CORS values and preflight logs.
 
 ***
 
 ## Optional: Docker Backend
 
-The backend can also run in Docker for convenience.
-
-**Files:**
-- `backend/Dockerfile`
-- `docker-compose.yml`
+Files:
+- `backend/Dockerfile`  
+- `docker-compose.yml`  
 - `.dockerignore`
 
-**Run with Docker:**
+Run:
 ```bash
 docker compose up -d --build backend
 ```
-
-- Backend available at `http://localhost:8080`
-- H2 Console: `http://localhost:8080/h2-console`
-- Logs: `docker logs -f feedback-backend`
-- Stop: `docker compose down`
+- Backend: `http://localhost:8080`  
+- H2 Console: `http://localhost:8080/h2-console`  
+- Logs: `docker logs -f feedback-backend`  
+- Stop: `docker compose down`
 
 ***
 
 ## Bonus Branch: List Feedbacks
-
-Branch: `feature/timestamps-and-get`
-
-Adds:
-- `createdAt` field in response  
-- New endpoint `GET /api/feedback` (return all feedback with pagination)
-- Updated tests
+Branch: `get-feedback-list-and-add-timestamps`
+- Adds `createdAt` to responses  
+- Implements `GET /api/feedback` with pagination  
+- Updates backend/frontend tests
 
 ***
 
 ## Summary
-
-**Backend:** Java 17 + Spring Boot 3, H2, REST API, DTO validation, structured logging, JUnit tests  
-**Frontend:** React + TypeScript, Axios, form validation, toasts, Vitest tests  
-**Focus Areas:** clean validation, testable architecture, clear logging, easy local setup  
-
-***
+- Backend: Java 17, Spring Boot 3, H2, REST API, DTO validation, structured logging, JUnit tests  
+- Frontend: React + TypeScript, Axios, validation, toasts, Vitest  
+- Focus: clean validation, testable architecture, clear logging, easy local setup
