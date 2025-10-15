@@ -1,0 +1,9 @@
+{
+  "extends": ["stylelint-config-standard-scss"],
+  "customSyntax": "postcss-scss",
+  "ignoreFiles": ["dist/**", "build/**", "coverage/**", "node_modules/**"],
+  "rules": {
+    "color-hex-length": "short",
+    "selector-class-pattern": null
+  }
+}

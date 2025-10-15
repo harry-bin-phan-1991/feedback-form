@@ -1,0 +1,32 @@
+# Maven artifacts
+target
+.mvn
+.settings
+.project
+.classpath
+
+# VCS/IDE
+.git
+.gitignore
+.idea
+.vscode
+*.iml
+
+# Logs
+*.log
+logs/
+
+# OS
+.DS_Store
+
+# Node modules if present
+node_modules
+
+# H2 files
+*.h2.db
+*.mv.db
+*.trace.db
+
+# Build caches
+.cache
+dist
